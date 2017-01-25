@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 
-namespace ConsoleApplication1
+namespace Riker
 {
     internal static class Program
     {
@@ -96,12 +96,13 @@ namespace ConsoleApplication1
                 }
 
                 // Todo: Receive msbuild command line arguments: https://msdn.microsoft.com/en-us/library/ms164311.aspx
-                // Todo: Figure out the output folder for each project, (bin and xml)
                 // Todo: Determine if we're in debug or release more.
 
-                var peName  = Path.Combine(Directory.GetCurrentDirectory() + "/test/", $"{compilation.AssemblyName}.{GetOutputName(project.CompilationOptions.OutputKind)}");
-                var xmlName = Path.Combine(Directory.GetCurrentDirectory() + "/test/", $"{compilation.AssemblyName}.xml");
-                var pdbName = Path.Combine(Directory.GetCurrentDirectory() + "/test/", $"{compilation.AssemblyName}.pdb");
+                var outputFolder = project.OutputFilePath ?? Directory.GetCurrentDirectory();
+
+                var peName  = Path.Combine(outputFolder, $"{compilation.AssemblyName}.{GetOutputName(project.CompilationOptions.OutputKind)}");
+                var xmlName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.xml");
+                var pdbName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.pdb");
 
                 using (var peStream  = new FileStream(peName,  FileMode.OpenOrCreate))
                 using (var xmlStream = new FileStream(xmlName, FileMode.OpenOrCreate))
@@ -121,7 +122,7 @@ namespace ConsoleApplication1
                 foreach (var item in metadataReferences)
                 {
                     // Todo: Do the same for Pdbs and Xml Documentation!
-                    File.Copy(item.FilePath, Path.Combine(Directory.GetCurrentDirectory() + "/test/", $"{Path.GetFileName(item.FilePath)}"), true);
+                    File.Copy(item.FilePath, Path.Combine(outputFolder, $"{Path.GetFileName(item.FilePath)}"), true);
                 }
             }
 
@@ -155,7 +156,7 @@ namespace ConsoleApplication1
 
                 bool copyLocal;
 
-                if (bool.TryParse(item.ChildNodes?.OfType<XmlNode>().FirstOrDefault(x => x.Name == "Private")?.InnerText, out copyLocal) &&
+                if (bool.TryParse(item.ChildNodes.OfType<XmlNode>().FirstOrDefault(x => x.Name == "Private")?.InnerText, out copyLocal) &&
                     references.ContainsKey(name) &&
                     copyLocal)
                 {
