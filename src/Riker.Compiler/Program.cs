@@ -7,6 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 
@@ -29,6 +32,9 @@ namespace Riker
                 else
                 {
                     var workspace = ToInMemorySolution(await MSBuildWorkspace.Create().OpenSolutionAsync(path));
+
+                    await EditDocuments(workspace);
+
                     var diagnostics = await CompileSolution(workspace.CurrentSolution);
 
                     foreach (var item in diagnostics)
@@ -43,7 +49,7 @@ namespace Riker
             Console.WriteLine("Done!");
             Console.ReadLine();
         }
-
+        
         private static Workspace ToInMemorySolution(Solution solution)
         {
             var workspace = new AdhocWorkspace();
@@ -203,6 +209,94 @@ namespace Riker
                     yield return references[name];
                 }
             }
+        }
+
+        private static async Task EditDocuments(Workspace workspace)
+        {
+            var methods = new[]
+            {
+                typeof(Device).GetMethod("Run")
+            };
+
+
+            foreach (var project in workspace.CurrentSolution.Projects)
+            {
+                foreach (var document in project.Documents)
+                {
+                    var editor = await DocumentEditor.CreateAsync(document);
+                    var syntaxRoot = editor.OriginalRoot;
+                    
+                    var methodCalls = syntaxRoot.DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
+
+                    foreach (var methodCall in methodCalls)
+                    {
+                        var symbol = editor.SemanticModel.GetSymbolInfo(methodCall).Symbol;
+
+                        if (MatchInvocationExpression(methods, symbol) == false)
+                        {
+                            continue;
+                        }
+
+                        var expression = methodCall.Expression;
+
+                        switch (expression.Kind())
+                        {
+                            case SyntaxKind.SimpleMemberAccessExpression:
+                            {
+                                var w = (MemberAccessExpressionSyntax)expression;
+                                Console.WriteLine("{0,50} : {1}", w.Name, expression.Kind());
+                                break;
+                            }
+                            case SyntaxKind.ConditionalAccessExpression:
+                            {
+                                var w = (ConditionalAccessExpressionSyntax)expression;
+                                Console.WriteLine("{0,50} : {1}", w, expression.Kind());
+                                throw new InvalidOperationException();
+                            }
+                            case SyntaxKind.IdentifierName:
+                            {
+                                var w = (IdentifierNameSyntax)expression;
+                                Console.WriteLine("{0,50} : {1}", w.Identifier, expression.Kind());
+                                break;
+                            }
+                            case SyntaxKind.MemberBindingExpression:
+                            {
+                                var w = (MemberBindingExpressionSyntax)expression;
+                                Console.WriteLine("{0,50} : {1}", w.Name, expression.Kind());
+                                break;
+                            }
+                            default:
+                            {
+                                throw new InvalidCastException();
+                            }
+                        }
+                    }
+                }
+
+                Console.WriteLine(new string('-', 20));
+            }
+        }
+
+        private static bool MatchInvocationExpression(IEnumerable<MethodInfo> methods, ISymbol symbol)
+        {
+            foreach (var item in methods)
+            {
+                var dt = item.DeclaringType;
+
+                if (dt == null)
+                {
+                    continue;
+                }
+
+                if (dt.Name == symbol.ContainingType.Name &&
+                    dt.Namespace == symbol.ContainingNamespace.Name &&
+                    dt.Assembly.FullName == symbol.ContainingAssembly.Identity.GetDisplayName())
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
