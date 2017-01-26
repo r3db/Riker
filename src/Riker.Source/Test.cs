@@ -25,8 +25,19 @@ namespace Riker
                 local[0] = 5;
             });
 
-            // Todo: Check Arguments!
+            Action<Action> run1 = x => Device.Run(x);
+            Action<Action> run2 = Device.Run;
+
+            Action<Action> run3 = x =>
+            {
+                Console.WriteLine(x);
+                Device.Run(x);
+            };
+
             Iterate(Device.Run);
+            Iterate(run1);
+            Iterate(run2);
+            Iterate(run3);
 
             Device.Run(() => { });
 
@@ -34,7 +45,7 @@ namespace Riker
             return input[0] > 10;
         }
 
-        internal static void Iterate(Action<Action> action)
+        private static void Iterate(Action<Action> action)
         {
             action.Invoke(() => { });
         }

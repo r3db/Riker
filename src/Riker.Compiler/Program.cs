@@ -32,15 +32,15 @@ namespace Riker
                 else
                 {
                     var workspace = ToInMemorySolution(await MSBuildWorkspace.Create().OpenSolutionAsync(path));
-
-                    await EditDocuments(workspace);
-
                     var diagnostics = await CompileSolution(workspace.CurrentSolution);
 
                     foreach (var item in diagnostics)
                     {
                         Console.WriteLine(item);
                     }
+
+                    // Analyzer!
+                    await Analize(workspace);
                 }
 
                 Console.ResetColor();
@@ -211,87 +211,64 @@ namespace Riker
             }
         }
 
-        private static async Task EditDocuments(Workspace workspace)
+        private static async Task Analize(Workspace workspace)
         {
-            var methods = new[]
+            var methodsToSearch = new[]
             {
                 typeof(Device).GetMethod("Run")
             };
-
 
             foreach (var project in workspace.CurrentSolution.Projects)
             {
                 foreach (var document in project.Documents)
                 {
                     var editor = await DocumentEditor.CreateAsync(document);
-                    var syntaxRoot = editor.OriginalRoot;
-                    
-                    var methodCalls = syntaxRoot.DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
 
-                    foreach (var methodCall in methodCalls)
+                    var members = editor
+                        .OriginalRoot
+                        .DescendantNodes()
+                        .OfType<MemberAccessExpressionSyntax>()
+                        .ToList();
+
+                    foreach (var member in members)
                     {
-                        var symbol = editor.SemanticModel.GetSymbolInfo(methodCall).Symbol;
+                        var symbol = editor.SemanticModel.GetSymbolInfo(member).Symbol;
+                        var expression = member.Expression;
+                        var line = expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
-
-                        if (MatchInvocationExpression(methods, symbol) == false)
+                        if (IsMatch(methodsToSearch, symbol) == false)
                         {
-                            var arguments = methodCall.ArgumentList.Arguments;
-
-                            foreach (var item in arguments)
-                            {
-                                var argExpression = item.Expression;
-                                var argSymbol = editor.SemanticModel.GetSymbolInfo(argExpression).Symbol;
-
-                                switch (argExpression.Kind())
-                                {
-                                    case SyntaxKind.SimpleMemberAccessExpression:
-                                    {
-                                        var w = (MemberAccessExpressionSyntax)argExpression;
-
-                                        if (MatchInvocationExpression(methods, argSymbol))
-                                        {
-                                            Console.WriteLine("{0,50} : {1} as Argument", w.Name, argExpression.Kind());
-                                        }
-                                       
-                                        break;
-                                    }
-                                }
-                            }
-
                             continue;
                         }
 
-                        var expression = methodCall.Expression;
-
-                        switch (expression.Kind())
+                        switch (member.Parent.Kind())
                         {
-                            case SyntaxKind.SimpleMemberAccessExpression:
+                            case SyntaxKind.Argument:
                             {
-                                var w = (MemberAccessExpressionSyntax)expression;
-                                Console.WriteLine("{0,50} : {1} as Call", w.Name, expression.Kind());
+                                Console.WriteLine("{0,20} as Argument [{1}]", symbol, line);
                                 break;
                             }
-                            case SyntaxKind.ConditionalAccessExpression:
+                            case SyntaxKind.InvocationExpression:
                             {
-                                var w = (ConditionalAccessExpressionSyntax)expression;
-                                Console.WriteLine("{0,50} : {1} as Call", w, expression.Kind());
-                                throw new InvalidOperationException();
-                            }
-                            case SyntaxKind.IdentifierName:
-                            {
-                                var w = (IdentifierNameSyntax)expression;
-                                Console.WriteLine("{0,50} : {1} as Call", w.Identifier, expression.Kind());
-                                break;
-                            }
-                            case SyntaxKind.MemberBindingExpression:
-                            {
-                                var w = (MemberBindingExpressionSyntax)expression;
-                                Console.WriteLine("{0,50} : {1} as Call", w.Name, expression.Kind());
+                                Console.WriteLine("{0,20} as Call     [{1}]", symbol, line);
                                 break;
                             }
                             default:
                             {
-                                throw new InvalidCastException();
+
+                                var copy = member.Parent;
+
+                                while (copy != null && copy.Kind() != SyntaxKind.VariableDeclaration)
+                                {
+                                    copy = copy.Parent;
+                                }
+
+                                Console.WriteLine(
+                                    copy != null && copy.Kind() == SyntaxKind.VariableDeclaration
+                                        ? "{0,20} as Variable [{1}]"
+                                        : "{0,20} as Other    [{1}]", symbol, line);
+
+                                break;
                             }
                         }
                     }
@@ -301,7 +278,7 @@ namespace Riker
             }
         }
 
-        private static bool MatchInvocationExpression(IEnumerable<MethodInfo> methods, ISymbol symbol)
+        private static bool IsMatch(IEnumerable<MethodInfo> methods, ISymbol symbol)
         {
             foreach (var item in methods)
             {
