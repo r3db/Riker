@@ -35,6 +35,8 @@ namespace Riker
         }
 
         internal static void Iterate(Action<Action> action)
-        { }
+        {
+            action.Invoke(() => { });
+        }
     }
 }

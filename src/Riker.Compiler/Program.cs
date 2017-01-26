@@ -232,8 +232,32 @@ namespace Riker
                     {
                         var symbol = editor.SemanticModel.GetSymbolInfo(methodCall).Symbol;
 
+
                         if (MatchInvocationExpression(methods, symbol) == false)
                         {
+                            var arguments = methodCall.ArgumentList.Arguments;
+
+                            foreach (var item in arguments)
+                            {
+                                var argExpression = item.Expression;
+                                var argSymbol = editor.SemanticModel.GetSymbolInfo(argExpression).Symbol;
+
+                                switch (argExpression.Kind())
+                                {
+                                    case SyntaxKind.SimpleMemberAccessExpression:
+                                    {
+                                        var w = (MemberAccessExpressionSyntax)argExpression;
+
+                                        if (MatchInvocationExpression(methods, argSymbol))
+                                        {
+                                            Console.WriteLine("{0,50} : {1} as Argument", w.Name, argExpression.Kind());
+                                        }
+                                       
+                                        break;
+                                    }
+                                }
+                            }
+
                             continue;
                         }
 
@@ -244,25 +268,25 @@ namespace Riker
                             case SyntaxKind.SimpleMemberAccessExpression:
                             {
                                 var w = (MemberAccessExpressionSyntax)expression;
-                                Console.WriteLine("{0,50} : {1}", w.Name, expression.Kind());
+                                Console.WriteLine("{0,50} : {1} as Call", w.Name, expression.Kind());
                                 break;
                             }
                             case SyntaxKind.ConditionalAccessExpression:
                             {
                                 var w = (ConditionalAccessExpressionSyntax)expression;
-                                Console.WriteLine("{0,50} : {1}", w, expression.Kind());
+                                Console.WriteLine("{0,50} : {1} as Call", w, expression.Kind());
                                 throw new InvalidOperationException();
                             }
                             case SyntaxKind.IdentifierName:
                             {
                                 var w = (IdentifierNameSyntax)expression;
-                                Console.WriteLine("{0,50} : {1}", w.Identifier, expression.Kind());
+                                Console.WriteLine("{0,50} : {1} as Call", w.Identifier, expression.Kind());
                                 break;
                             }
                             case SyntaxKind.MemberBindingExpression:
                             {
                                 var w = (MemberBindingExpressionSyntax)expression;
-                                Console.WriteLine("{0,50} : {1}", w.Name, expression.Kind());
+                                Console.WriteLine("{0,50} : {1} as Call", w.Name, expression.Kind());
                                 break;
                             }
                             default:
