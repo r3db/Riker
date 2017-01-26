@@ -20,54 +20,51 @@ namespace Riker
             {
                 const string path = "../../../Riker.sln";
 
+                Console.ForegroundColor = ConsoleColor.Cyan;
+
                 if (File.Exists(path) == false)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Could not find solution file at: '{0}'.", path);
-                    Console.ResetColor();
-                    return;
                 }
-
-                var workspace = ToInMemorySolution(await MSBuildWorkspace.Create().OpenSolutionAsync(path));
-
+                else
                 {
-                    //var document1 = workspace.CurrentSolution.Projects.First().Documents.First();
-                    //var document2 = document1.WithText(SourceText.From("Invalid Code################", Encoding.UTF8));
+                    var workspace = ToInMemorySolution(await MSBuildWorkspace.Create().OpenSolutionAsync(path));
+                    var diagnostics = await CompileSolution(workspace.CurrentSolution);
 
-                    //workspace.TryApplyChanges(document2.Project.Solution);
+                    foreach (var item in diagnostics)
+                    {
+                        Console.WriteLine(item);
+                    }
                 }
 
-                var diagnostics = await CompileSolution(workspace.CurrentSolution);
-
-                foreach (var item in diagnostics)
-                {
-                    Console.WriteLine(item);
-                }
-
+                Console.ResetColor();
             }).Wait();
+
+            Console.WriteLine("Done!");
+            Console.ReadLine();
         }
 
         private static Workspace ToInMemorySolution(Solution solution)
         {
             var workspace = new AdhocWorkspace();
 
-            workspace.AddSolution(SolutionInfo.Create(SolutionId.CreateNewId(), VersionStamp.Default));
+            workspace.AddSolution(SolutionInfo.Create(solution.Id, solution.Version));
 
             foreach (var project in solution.Projects)
             {
                 var projectInfo = ProjectInfo.Create(
-                    id                 : ProjectId.CreateNewId(),
-                    version            : VersionStamp.Default,
-                    name               : project.Name,
-                    assemblyName       : project.AssemblyName,
-                    language           : project.Language,
-                    filePath           : project.FilePath,
-                    outputFilePath     : project.OutputFilePath,
-                    compilationOptions : project.CompilationOptions,
-                    metadataReferences : project.MetadataReferences,
-                    analyzerReferences : project.AnalyzerReferences,
-                    parseOptions       : project.ParseOptions,
-                    projectReferences  : project.ProjectReferences);
+                    id                : project.Id,
+                    version           : project.Version,
+                    name              : project.Name,
+                    assemblyName      : project.AssemblyName,
+                    language          : project.Language,
+                    filePath          : project.FilePath,
+                    outputFilePath    : project.OutputFilePath,
+                    compilationOptions: project.CompilationOptions,
+                    metadataReferences: project.MetadataReferences.ToList(),
+                    analyzerReferences: project.AnalyzerReferences.ToList(),
+                    parseOptions      : project.ParseOptions,
+                    projectReferences : project.ProjectReferences.ToList());
 
                 workspace.AddProject(projectInfo);
 
@@ -80,6 +77,8 @@ namespace Riker
             return workspace;
         }
 
+        // Todo: Receive msbuild command line arguments: https://msdn.microsoft.com/en-us/library/ms164311.aspx
+        // Todo: Determine if we're in debug or release more, do we need to do that?
         private static async Task<IList<Diagnostic>> CompileSolution(Solution solution)
         {
             var diagnostics = new List<Diagnostic>();
@@ -89,26 +88,34 @@ namespace Riker
             {
                 var project = solution.GetProject(id);
                 var compilation = await project.GetCompilationAsync();
-
+                
                 if (string.IsNullOrWhiteSpace(compilation?.AssemblyName))
                 {
                     continue;
                 }
 
-                // Todo: Receive msbuild command line arguments: https://msdn.microsoft.com/en-us/library/ms164311.aspx
-                // Todo: Determine if we're in debug or release more.
+                var outputFolder = (Path.GetDirectoryName(project.OutputFilePath) ?? Directory.GetCurrentDirectory()) + @"\gpu\";
 
-                var outputFolder = project.OutputFilePath ?? Directory.GetCurrentDirectory();
-
-                var peName  = Path.Combine(outputFolder, $"{compilation.AssemblyName}.{GetOutputName(project.CompilationOptions.OutputKind)}");
-                var xmlName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.xml");
-                var pdbName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.pdb");
-
-                using (var peStream  = new FileStream(peName,  FileMode.OpenOrCreate))
-                using (var xmlStream = new FileStream(xmlName, FileMode.OpenOrCreate))
-                using (var pdbStream = new FileStream(pdbName, FileMode.OpenOrCreate))
+                if (Directory.Exists(outputFolder) == false)
                 {
-                    var result = compilation.Emit(peStream, pdbStream, xmlStream);
+                    Directory.CreateDirectory(outputFolder);
+                }
+
+                var extension = Path.GetExtension(project.OutputFilePath);
+
+                var exeName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.{extension}");
+                var pdbName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.pdb");
+                var xmlName = Path.Combine(outputFolder, $"{compilation.AssemblyName}.xml");
+                
+                using (var exeStream = new FileStream(exeName, FileMode.OpenOrCreate))
+                using (var pdbStream = new FileStream(pdbName, FileMode.OpenOrCreate))
+                using (var xmlStream = new FileStream(xmlName, FileMode.OpenOrCreate))
+                {
+                    var result = compilation.Emit(exeStream, pdbStream, xmlStream);
+
+                    await exeStream.FlushAsync();
+                    await pdbStream.FlushAsync();
+                    await xmlStream.FlushAsync();
 
                     if (result.Success == false)
                     {
@@ -117,16 +124,49 @@ namespace Riker
                     }
                 }
 
-                var metadataReferences = GetMetadataReferencesToCopy(project.FilePath, project.MetadataReferences);
-
-                foreach (var item in metadataReferences)
-                {
-                    // Todo: Do the same for Pdbs and Xml Documentation!
-                    File.Copy(item.FilePath, Path.Combine(outputFolder, $"{Path.GetFileName(item.FilePath)}"), true);
-                }
+                CopyProjectReferences(project.ProjectReferences.Select(x => solution.GetProject(x.ProjectId)), outputFolder);
+                CopyMetadataReferences(GetMetadataReferencesToCopy(project.FilePath, project.MetadataReferences), outputFolder);
             }
 
             return diagnostics;
+        }
+        
+        private static void CopyProjectReferences(IEnumerable<Project> projects, string outputFolder)
+        {
+            foreach (var project in projects)
+            {
+                var files = GetRelatedBuildFiles(project.OutputFilePath);
+
+                foreach (var file in files.Where(File.Exists))
+                {
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    File.Copy(file, Path.Combine(outputFolder, Path.GetFileName(file)), true);
+                }
+            }
+        }
+
+        private static void CopyMetadataReferences(IEnumerable<PortableExecutableReference> metadataReferences, string outputFolder)
+        {
+            foreach (var reference in metadataReferences)
+            {
+                var files = GetRelatedBuildFiles(reference.FilePath);
+
+                foreach (var file in files.Where(File.Exists))
+                {
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    File.Copy(file, Path.Combine(outputFolder, Path.GetFileName(file)), true);
+                }
+            }
+        }
+
+        private static IEnumerable<string> GetRelatedBuildFiles(string file)
+        {
+            var a = Path.GetDirectoryName(file);
+            var b = Path.GetFileNameWithoutExtension(file);
+
+            yield return file;
+            yield return $"{a}\\{b}.pdb";
+            yield return $"{a}\\{b}.xml";
         }
 
         private static IEnumerable<PortableExecutableReference> GetMetadataReferencesToCopy(string path, IEnumerable<MetadataReference> metadataReferences)
@@ -163,19 +203,6 @@ namespace Riker
                     yield return references[name];
                 }
             }
-        }
-
-        private static string GetOutputName(OutputKind kind)
-        {
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (kind)
-            {
-                case OutputKind.WindowsApplication:
-                case OutputKind.ConsoleApplication      : return "exe";
-                case OutputKind.DynamicallyLinkedLibrary: return "dll";
-            }
-
-            throw new NotImplementedException();
         }
     }
 }
