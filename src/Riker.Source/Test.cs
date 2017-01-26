@@ -34,10 +34,13 @@ namespace Riker
                 Device.Run(x);
             };
 
-            Iterate(Device.Run);
-            Iterate(run1);
-            Iterate(run2);
-            Iterate(run3);
+            Action<Action, int, float> run4 = (a, b, c) => Device.Run(a);
+
+            Iterate1(Device.Run);
+            Iterate1(run1);
+            Iterate1(run2);
+            Iterate1(run3);
+            Iterate2(run4);
 
             Device.Run(() => { });
 
@@ -45,9 +48,16 @@ namespace Riker
             return input[0] > 10;
         }
 
-        private static void Iterate(Action<Action> action)
+        private static void Iterate1(Action<Action> action)
         {
             action.Invoke(() => { });
+        }
+
+        private static T Iterate2<T>(Action<Action, int, T> action)
+        {
+            action.Invoke(() => { }, 1, default(T));
+            action(() => { }, 1, default(T));
+            return default(T);
         }
     }
 }

@@ -233,6 +233,12 @@ namespace Riker
                     foreach (var member in members)
                     {
                         var symbol = editor.SemanticModel.GetSymbolInfo(member).Symbol;
+
+                        if (symbol == null)
+                        {
+                            continue;
+                        }
+
                         var expression = member.Expression;
                         var line = expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
@@ -245,12 +251,12 @@ namespace Riker
                         {
                             case SyntaxKind.Argument:
                             {
-                                Console.WriteLine("{0,20} as Argument [{1}]", symbol, line);
+                                Console.WriteLine("{0,20} as MethodGroup [{1}]", symbol, line);
                                 break;
                             }
                             case SyntaxKind.InvocationExpression:
                             {
-                                Console.WriteLine("{0,20} as Call     [{1}]", symbol, line);
+                                Console.WriteLine("{0,20} as Call        [{1}]", symbol, line);
                                 break;
                             }
                             default:
@@ -265,8 +271,8 @@ namespace Riker
 
                                 Console.WriteLine(
                                     copy != null && copy.Kind() == SyntaxKind.VariableDeclaration
-                                        ? "{0,20} as Variable [{1}]"
-                                        : "{0,20} as Other    [{1}]", symbol, line);
+                                        ? "{0,20} as Variable    [{1}]"
+                                        : "{0,20} as Other      [{1}]", symbol, line);
 
                                 break;
                             }
