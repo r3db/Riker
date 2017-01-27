@@ -428,7 +428,7 @@ namespace Riker
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine("\t   [Method Call] in {0}", identifier);
-                            Console.WriteLine("\t   [Anonymous Lambda]");
+                            Console.WriteLine("\t   [Anonymous Lambda or Delegate]");
                             var f = (await SymbolFinder.FindReferencesAsync(editor.SemanticModel.GetSymbolInfo(x.Expression).Symbol, solution)).ToList();
 
                             foreach (var xxx in f)

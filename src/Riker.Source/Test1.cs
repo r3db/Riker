@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Riker
 {
@@ -109,7 +110,7 @@ namespace Riker
         private static readonly int[] _field = new int[10];
 
         // Inline Kernel [Action]
-        internal static bool Method001(int[] input)
+        internal static bool Method001(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
@@ -168,7 +169,7 @@ namespace Riker
         }
 
         // Inline Kernel [Delegate]
-        internal static bool Method002(int[] input)
+        internal static bool Method002(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
@@ -229,7 +230,7 @@ namespace Riker
         // -------------------------------------------
 
         // External (Local) Kernel [Action]   -> Method:Direct
-        internal static bool Method003(int[] input)
+        internal static bool Method003(IList<int> input)
         {
             Device.Run(Call003(input));
 
@@ -237,7 +238,7 @@ namespace Riker
             return input[0] > 10;
         }
 
-        private static Action Call003(int[] input)
+        private static Action Call003(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
@@ -293,7 +294,7 @@ namespace Riker
         }
 
         // External (Local) Kernel [Delegate] -> Method:Direct
-        internal static bool Method004(int[] input)
+        internal static bool Method004(IList<int> input)
         {
             Device.Run(Call004(input));
 
@@ -301,7 +302,7 @@ namespace Riker
             return input[0] > 10;
         }
 
-        private static Action Call004(int[] input)
+        private static Action Call004(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
@@ -359,7 +360,7 @@ namespace Riker
         // -------------------------------------------
 
         // External (Local) Kernel [Action]   -> Method:Indirect
-        internal static bool Method005(int[] input)
+        internal static bool Method005(IList<int> input)
         {
             Device.Run(Call005(input));
 
@@ -367,7 +368,7 @@ namespace Riker
             return input[0] > 10;
         }
 
-        private static Action Call005(int[] input)
+        private static Action Call005(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
@@ -425,7 +426,7 @@ namespace Riker
         }
 
         // External (Local) Kernel [Delegate] -> Method:Indirect
-        internal static bool Method006(int[] input)
+        internal static bool Method006(IList<int> input)
         {
             Device.Run(Call006(input));
 
@@ -433,7 +434,7 @@ namespace Riker
             return input[0] > 10;
         }
 
-        private static Action Call006(int[] input)
+        private static Action Call006(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
