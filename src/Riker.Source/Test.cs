@@ -12,6 +12,11 @@ namespace Riker
         private static readonly Action<Action> _action = x => Device.Run(x);
         private static int[] _field1 = new int[10];
 
+        private static Action _field2 = () => Device.Run(() =>
+        {
+            _field1[0] = 10;
+        });
+
         // Device Memory never leaves method!
         internal static bool Method001(int[] input)
         {
@@ -53,6 +58,7 @@ namespace Riker
             Iterate1(_action);
             Iterate1(Test2.Action);
             Iterate2(run4);
+            _field2();
 
             Device.Run(() => { });
 

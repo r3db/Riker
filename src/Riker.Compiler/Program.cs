@@ -252,12 +252,9 @@ namespace Riker
 
                     if (methodCallType == CallerType.Method)
                     {
-                        Console.ForegroundColor = ConsoleColor.Cyan;
                         AnalizeMemoryAccessInKernel(member, editor);
-                        Console.ResetColor();
                     }
 
-                    // Todo: Analize Kernel
                     // Todo: This will probably be a loop! We go up the tree a method does not interact with anyone anymore!
                     // Todo: For now it will a "one-off".
                     if (parent != null)
@@ -391,91 +388,100 @@ namespace Riker
             {
                 case SyntaxKind.IdentifierName:
                 {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("\tExternal Lambda : {0}", ((IdentifierNameSyntax)expression).Identifier);
+                    Console.ResetColor();
                     break;
                 }
                 case SyntaxKind.ParenthesizedLambdaExpression:
                 {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine("\t   Local Lambda");
 
-                    var access = ((ParenthesizedLambdaExpressionSyntax)expression)
-                        .Body
-                        .DescendantNodes()
-                        .OfType<ElementAccessExpressionSyntax>()
-                        .ToList();
+                    AnalizeLocalKernel(editor, expression);
 
-                    foreach (var item in access)
-                    {
-                        var symbol = editor.SemanticModel.GetSymbolInfo(item.Expression).Symbol;
-                        var line = item.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
-                        var identifier = item.DescendantNodes().OfType<IdentifierNameSyntax>().First().Identifier.ValueText;
-                        ITypeSymbol type;
-                        string locality;
-                        bool isExternal = false;
-                            
-                        switch (symbol.Kind)
-                        {
-                            case SymbolKind.Field:
-                            {
-                                isExternal = item.DescendantNodes().ToList().First() is MemberAccessExpressionSyntax;
-                                type = ((IFieldSymbol)symbol).Type;
-                                locality = "field";
-                                break;
-                            }
-                            case SymbolKind.Parameter:
-                            {
-                                type = ((IParameterSymbol)symbol).Type;
-                                locality = "param";
-                                break;
-                            }
-                            case SymbolKind.Local:
-                            {
-                                type = ((ILocalSymbol)symbol).Type;
-                                locality = "local";
-                                break;
-                            }
-                            default:
-                            {
-                                throw new NotSupportedException();
-                            }
-                        }
-
-                        var parent = item.Parent;
-                        string mode;
-
-                        switch (parent.Kind())
-                        {
-                            case SyntaxKind.SimpleAssignmentExpression:
-                            {
-                                mode = "_w";
-                                break;
-                            }
-                            case SyntaxKind.AddAssignmentExpression:
-                            case SyntaxKind.SubtractAssignmentExpression:
-                            case SyntaxKind.MultiplyAssignmentExpression:
-                            case SyntaxKind.DivideAssignmentExpression:
-                            case SyntaxKind.ModuloAssignmentExpression:
-                            case SyntaxKind.AndAssignmentExpression:
-                            case SyntaxKind.ExclusiveOrAssignmentExpression:
-                            case SyntaxKind.OrAssignmentExpression:
-                            case SyntaxKind.LeftShiftAssignmentExpression:
-                            case SyntaxKind.RightShiftAssignmentExpression:
-                            {
-                                mode = "rw";
-                                break;
-                            }
-                            default:
-                            {
-                                mode = "r_";
-                                break;
-                            }
-                        }
-
-                        Console.WriteLine("\t{0,8} {1} {2} {3} {4} [{5}]", identifier, type, locality, mode, isExternal ? "external": "internal", line);
-                    }
-
+                    Console.ResetColor();
                     break;
                 }
+            }
+        }
+
+        private static void AnalizeLocalKernel(DocumentEditor editor, ExpressionSyntax expression)
+        {
+            var access = ((ParenthesizedLambdaExpressionSyntax) expression)
+                .Body
+                .DescendantNodes()
+                .OfType<ElementAccessExpressionSyntax>()
+                .ToList();
+
+            foreach (var item in access)
+            {
+                var symbol = editor.SemanticModel.GetSymbolInfo(item.Expression).Symbol;
+                var line = item.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                var identifier = item.DescendantNodes().OfType<IdentifierNameSyntax>().First().Identifier.ValueText;
+                ITypeSymbol type;
+                string locality;
+                bool isExternal = false;
+
+                switch (symbol.Kind)
+                {
+                    case SymbolKind.Field:
+                    {
+                        isExternal = item.DescendantNodes().ToList().First() is MemberAccessExpressionSyntax;
+                        type = ((IFieldSymbol) symbol).Type;
+                        locality = "field";
+                        break;
+                    }
+                    case SymbolKind.Parameter:
+                    {
+                        type = ((IParameterSymbol) symbol).Type;
+                        locality = "param";
+                        break;
+                    }
+                    case SymbolKind.Local:
+                    {
+                        type = ((ILocalSymbol) symbol).Type;
+                        locality = "local";
+                        break;
+                    }
+                    default:
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+
+                var parent = item.Parent;
+                string mode;
+
+                switch (parent.Kind())
+                {
+                    case SyntaxKind.SimpleAssignmentExpression:
+                    {
+                        mode = "_w";
+                        break;
+                    }
+                    case SyntaxKind.AddAssignmentExpression:
+                    case SyntaxKind.SubtractAssignmentExpression:
+                    case SyntaxKind.MultiplyAssignmentExpression:
+                    case SyntaxKind.DivideAssignmentExpression:
+                    case SyntaxKind.ModuloAssignmentExpression:
+                    case SyntaxKind.AndAssignmentExpression:
+                    case SyntaxKind.ExclusiveOrAssignmentExpression:
+                    case SyntaxKind.OrAssignmentExpression:
+                    case SyntaxKind.LeftShiftAssignmentExpression:
+                    case SyntaxKind.RightShiftAssignmentExpression:
+                    {
+                        mode = "rw";
+                        break;
+                    }
+                    default:
+                    {
+                        mode = "r_";
+                        break;
+                    }
+                }
+
+                Console.WriteLine("\t{0,8} {1} {2} {3} {4} [{5}]", identifier, type, locality, mode, isExternal ? "external" : "internal", line);
             }
         }
     }
