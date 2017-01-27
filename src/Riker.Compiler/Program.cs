@@ -30,9 +30,7 @@ namespace Riker
             Task.Run(async () =>
             {
                 const string path = "../../../Riker.sln";
-
-                Console.ForegroundColor = ConsoleColor.Cyan;
-
+                
                 if (File.Exists(path) == false)
                 {
                     Console.WriteLine("Could not find solution file at: '{0}'.", path);
@@ -50,8 +48,6 @@ namespace Riker
                     // Analyzer!
                     await Analize(workspace);
                 }
-
-                Console.ResetColor();
             }).Wait();
 
             Console.WriteLine("Done!");
@@ -254,6 +250,7 @@ namespace Riker
                     var line = member.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                     Console.WriteLine("{0,20} as {1,12} [{2}]", symbol, methodCallType, line);
 
+                    // Todo: Analize Kernel
                     // Todo: This will probably be loop! We go up the tree a method does not interact with anyone anymore!
                     // Todo: For now it will a "one-off".
                     if (parent != null)
