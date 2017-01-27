@@ -15,6 +15,14 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Riker
 {
+    internal enum CallerType
+    {
+        Method,
+        MethodGroup,
+        Assignment,
+        Unknown,
+    }
+
     internal static class Program
     {
         private static void Main()
@@ -218,106 +226,87 @@ namespace Riker
                 typeof(Device).GetMethod("Run")
             };
 
+            foreach (var document in GetDocuments(workspace))
+            {                
+                var editor = await DocumentEditor.CreateAsync(document);
+                var members = GetMembers(editor);
+                var hasMembers = false;
+
+                foreach (var member in members)
+                {
+                    var symbol = editor.SemanticModel.GetSymbolInfo(member).Symbol;
+
+                    if (symbol == null)
+                    {
+                        continue;
+                    }
+
+                    if (IsMatch(methodsToSearch, symbol) == false)
+                    {
+                        continue;
+                    }
+
+                    var methodCallType = GetCallerType(member);
+                    var parent = GetParentDeclaration(member);
+
+                    //Note: Debug-Info Only
+                    hasMembers = true;
+                    var line = member.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                    Console.WriteLine("{0,20} as {1,12} [{2}]", symbol, methodCallType, line);
+
+                    if (parent != null)
+                    {
+                        switch (parent.Kind())
+                        {
+                            case SyntaxKind.ClassDeclaration:
+                            {
+                                Console.WriteLine("{0} : Class ", ((ClassDeclarationSyntax)parent).Identifier);
+                                break;
+                            }
+                            case SyntaxKind.FieldDeclaration:
+                            {
+                                Console.WriteLine("{0} : Field", ((FieldDeclarationSyntax)parent).Declaration.Variables.Last().Identifier);
+                                break;
+                            }
+                            case SyntaxKind.MethodDeclaration:
+                            {
+                                Console.WriteLine("{0} : Method", ((MethodDeclarationSyntax) parent).Identifier);
+                                break;
+                            }
+                            case SyntaxKind.LocalDeclarationStatement:
+                            {
+                                Console.WriteLine("{0} : Local", ((LocalDeclarationStatementSyntax)parent).Declaration.Variables.Last().Identifier);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (hasMembers)
+                {
+                    Console.WriteLine(new string('-', 80));
+                }
+            }
+        }
+        
+        private static IEnumerable<Document> GetDocuments(Workspace workspace)
+        {
             foreach (var project in workspace.CurrentSolution.Projects)
             {
                 foreach (var document in project.Documents)
                 {
-                    var editor = await DocumentEditor.CreateAsync(document);
-
-                    var members = editor
-                        .OriginalRoot
-                        .DescendantNodes()
-                        .OfType<MemberAccessExpressionSyntax>()
-                        .ToList();
-
-                    Console.WriteLine(new string('-', 20));
-
-                    foreach (var member in members)
-                    {
-                        var symbol = editor.SemanticModel.GetSymbolInfo(member).Symbol;
-
-                        if (symbol == null)
-                        {
-                            continue;
-                        }
-
-                        var expression = member.Expression;
-                        var line = expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
-
-                        if (IsMatch(methodsToSearch, symbol) == false)
-                        {
-                            continue;
-                        }
-
-                        switch (member.Parent.Kind())
-                        {
-                            case SyntaxKind.Argument:
-                            {
-                                Console.WriteLine("{0,20} as MethodGroup [{1}]", symbol, line);
-                                break;
-                            }
-                            case SyntaxKind.InvocationExpression:
-                            {
-                                Console.WriteLine("{0,20} as Call        [{1}]", symbol, line);
-                                break;
-                            }
-                            default:
-                            {
-
-                                var copy = member.Parent;
-
-                                while (copy != null && copy.Kind() != SyntaxKind.VariableDeclaration)
-                                {
-                                    copy = copy.Parent;
-                                }
-
-                                Console.WriteLine(
-                                    copy != null && copy.Kind() == SyntaxKind.VariableDeclaration
-                                        ? "{0,20} as Variable    [{1}]"
-                                        : "{0,20} as Other       [{1}]", symbol, line);
-
-                                break;
-                            }
-                        }
-
-                        var copy2 = member.Parent;
-
-                        while (copy2 != null && (copy2.Kind() != SyntaxKind.MethodDeclaration && copy2.Kind() != SyntaxKind.LocalDeclarationStatement && copy2.Kind() != SyntaxKind.FieldDeclaration))
-                        {
-                            copy2 = copy2.Parent;
-                        }
-
-                        if (copy2 != null)
-                        {
-                            switch (copy2.Kind())
-                            {
-                                case SyntaxKind.ClassDeclaration:
-                                {
-                                    Console.WriteLine("{0} : Class ", ((ClassDeclarationSyntax)copy2).Identifier);
-                                    break;
-                                }
-                                case SyntaxKind.FieldDeclaration:
-                                {
-                                    Console.WriteLine("{0} : Field", ((FieldDeclarationSyntax)copy2).Declaration.Variables.Last().Identifier);
-                                    break;
-                                }
-                                case SyntaxKind.MethodDeclaration:
-                                {
-                                    Console.WriteLine("{0} : Method", ((MethodDeclarationSyntax) copy2).Identifier);
-                                    break;
-                                }
-                                case SyntaxKind.LocalDeclarationStatement:
-                                {
-                                    Console.WriteLine("{0} : Local", ((LocalDeclarationStatementSyntax)copy2).Declaration.Variables.Last().Identifier);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    Console.WriteLine(new string('-', 20));
+                    yield return document;
                 }
             }
+        }
+
+        private static IEnumerable<MemberAccessExpressionSyntax> GetMembers(SyntaxEditor editor)
+        {
+            return editor
+                    .OriginalRoot
+                    .DescendantNodes()
+                    .OfType<MemberAccessExpressionSyntax>()
+                    .ToList();
         }
 
         private static bool IsMatch(IEnumerable<MethodInfo> methods, ISymbol symbol)
@@ -340,6 +329,49 @@ namespace Riker
             }
 
             return false;
+        }
+
+        private static CallerType GetCallerType(SyntaxNode member)
+        {
+            switch (member.Parent.Kind())
+            {
+                case SyntaxKind.Argument:
+                {
+                    return CallerType.MethodGroup;
+                }
+                case SyntaxKind.InvocationExpression:
+                {
+                    return CallerType.Method;
+                }
+                default:
+                {
+                    var parent = member.Parent;
+
+                    while (parent != null && parent.Kind() != SyntaxKind.VariableDeclaration)
+                    {
+                        parent = parent.Parent;
+                    }
+
+                    return parent != null && parent.Kind() == SyntaxKind.VariableDeclaration
+                            ? CallerType.Assignment
+                            : CallerType.Unknown;
+                }
+            }
+        }
+
+        private static SyntaxNode GetParentDeclaration(SyntaxNode member)
+        {
+            var parent = member.Parent;
+
+            while (parent != null &&
+                parent.Kind() != SyntaxKind.FieldDeclaration &&
+                parent.Kind() != SyntaxKind.MethodDeclaration &&
+                parent.Kind() != SyntaxKind.LocalDeclarationStatement)
+            {
+                parent = parent.Parent;
+            }
+
+            return parent;
         }
     }
 }
