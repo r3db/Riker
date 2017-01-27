@@ -254,15 +254,12 @@ namespace Riker
                     var line = member.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                     Console.WriteLine("{0,20} as {1,12} [{2}]", symbol, methodCallType, line);
 
+                    // Todo: This will probably be loop! We go up the tree a method does not interact with anyone anymore!
+                    // Todo: For now it will a "one-off".
                     if (parent != null)
                     {
                         switch (parent.Kind())
                         {
-                            case SyntaxKind.ClassDeclaration:
-                            {
-                                Console.WriteLine("{0} : Class ", ((ClassDeclarationSyntax)parent).Identifier);
-                                break;
-                            }
                             case SyntaxKind.FieldDeclaration:
                             {
                                 Console.WriteLine("{0} : Field", ((FieldDeclarationSyntax)parent).Declaration.Variables.Last().Identifier);
