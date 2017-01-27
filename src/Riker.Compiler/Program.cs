@@ -252,7 +252,9 @@ namespace Riker
 
                     if (methodCallType == CallerType.Method)
                     {
+                        Console.ForegroundColor = ConsoleColor.Cyan;
                         AnalizeMemoryAccessInKernel(member, editor);
+                        Console.ResetColor();
                     }
 
                     // Todo: Analize Kernel
@@ -406,17 +408,22 @@ namespace Riker
                     {
                         var symbol = editor.SemanticModel.GetSymbolInfo(item.Expression).Symbol;
                         var line = item.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                        var identifier = item.DescendantNodes().OfType<IdentifierNameSyntax>().First().Identifier.ValueText;
+                        ITypeSymbol type;
+                        string locality;
 
                         switch (symbol.Kind)
                         {
                             case SymbolKind.Parameter:
                             {
-                                Console.WriteLine("\t{0,8} {1} Param [{2}]", item.Expression, ((IParameterSymbol)symbol).Type, line);
+                                type = ((IParameterSymbol)symbol).Type;
+                                locality = "param";
                                 break;
                             }
                             case SymbolKind.Local:
                             {
-                                Console.WriteLine("\t{0,8} {1} Local [{2}]", item.Expression, ((ILocalSymbol)symbol).Type, line);
+                                type = ((ILocalSymbol)symbol).Type;
+                                locality = "local";
                                 break;
                             }
                             default:
@@ -426,12 +433,13 @@ namespace Riker
                         }
 
                         var parent = item.Parent;
+                        string mode;
 
                         switch (parent.Kind())
                         {
                             case SyntaxKind.SimpleAssignmentExpression:
                             {
-                                Console.WriteLine("\tWrite");
+                                mode = "_w";
                                 break;
                             }
                             case SyntaxKind.AddAssignmentExpression:
@@ -445,15 +453,17 @@ namespace Riker
                             case SyntaxKind.LeftShiftAssignmentExpression:
                             case SyntaxKind.RightShiftAssignmentExpression:
                             {
-                                Console.WriteLine("\tRead/Write");
+                                mode = "rw";
                                 break;
                             }
                             default:
                             {
-                                Console.WriteLine("\tRead");
+                                mode = "r_";
                                 break;
                             }
                         }
+
+                        Console.WriteLine("\t{0,8} {1} {2} {3} [{4}]", identifier, type, locality, mode, line);
                     }
 
                     break;

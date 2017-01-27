@@ -2,6 +2,11 @@
 
 namespace Riker
 {
+    // Todo: Identifiers!
+    // Todo: Delegates!
+    // Todo: Kernel Variables! Gpu.Run(identifier)!
+    // Todo: Kernel Lives in Local Variable!
+    // Todo: Kernel Lives in Method or field!
     internal static class Test1
     {
         private static readonly Action<Action> _action = x => Device.Run(x);
