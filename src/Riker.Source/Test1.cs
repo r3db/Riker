@@ -230,10 +230,10 @@ namespace Riker
             return input[0] > 10;
         }
 
-        // External (Local) Kernel
+        // External (Local) Kernel -> Direct -> Single Call
         // -------------------------------------------
 
-        // [Action]   -> Method:Direct
+        // [Action]
         internal static bool Method003(IList<int> input)
         {
             Device.Run(Call003(input));
@@ -297,7 +297,7 @@ namespace Riker
             };
         }
 
-        // [Delegate] -> Method:Direct
+        // [Delegate]
         internal static bool Method004(IList<int> input)
         {
             Device.Run(Call004(input));
@@ -361,10 +361,10 @@ namespace Riker
             };
         }
 
-        // External (Local) Kernel
+        // External (Local) Kernel -> Indirect -> Single Call
         // -------------------------------------------
 
-        // [Action]   -> Method:Indirect
+        // [Action]
         internal static bool Method005(IList<int> input)
         {
             Device.Run(Call005(input));
@@ -430,7 +430,7 @@ namespace Riker
             return action;
         }
 
-        // [Delegate] -> Method:Indirect
+        // [Delegate]
         internal static bool Method006(IList<int> input)
         {
             Device.Run(Call006(input));
@@ -496,10 +496,10 @@ namespace Riker
             return action;
         }
 
-        // External (Local) Kernel
+        // External (Local) Kernel -> Indirect -> Multiple Calls
         // -------------------------------------------
 
-        // [Action]   -> Method:Indirect -> Multiple Calls
+        // [Action]
         internal static bool Method007(IList<int> input)
         {
             Device.Run(Call007a(input));
@@ -508,16 +508,19 @@ namespace Riker
             return input[0] > 10;
         }
 
+        // ReSharper disable once InconsistentNaming
         private static Action Call007a(IList<int> input)
         {
             return Call007b(input);
         }
 
+        // ReSharper disable once InconsistentNaming
         private static Action Call007b(IList<int> input)
         {
             return Call007c(input);
         }
 
+        // ReSharper disable once InconsistentNaming
         private static Action Call007c(IList<int> input)
         {
             const int constant = 34;
@@ -575,7 +578,7 @@ namespace Riker
             return action;
         }
 
-        // [Delegate] -> Method:Indirect -> Multiple Calls
+        // [Delegate]
         internal static bool Method008(IList<int> input)
         {
             Device.Run(Call008a(input));
@@ -584,16 +587,19 @@ namespace Riker
             return input[0] > 10;
         }
 
+        // ReSharper disable once InconsistentNaming
         private static Action Call008a(IList<int> input)
         {
             return Call008b(input);
         }
 
+        // ReSharper disable once InconsistentNaming
         private static Action Call008b(IList<int> input)
         {
             return Call008c(input);
         }
 
+        // ReSharper disable once InconsistentNaming
         private static Action Call008c(IList<int> input)
         {
             const int constant = 34;
