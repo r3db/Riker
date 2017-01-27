@@ -230,6 +230,8 @@ namespace Riker
                         .OfType<MemberAccessExpressionSyntax>()
                         .ToList();
 
+                    Console.WriteLine(new string('-', 20));
+
                     foreach (var member in members)
                     {
                         var symbol = editor.SemanticModel.GetSymbolInfo(member).Symbol;
@@ -272,15 +274,49 @@ namespace Riker
                                 Console.WriteLine(
                                     copy != null && copy.Kind() == SyntaxKind.VariableDeclaration
                                         ? "{0,20} as Variable    [{1}]"
-                                        : "{0,20} as Other      [{1}]", symbol, line);
+                                        : "{0,20} as Other       [{1}]", symbol, line);
 
                                 break;
                             }
                         }
-                    }
-                }
 
-                Console.WriteLine(new string('-', 20));
+                        var copy2 = member.Parent;
+
+                        while (copy2 != null && (copy2.Kind() != SyntaxKind.MethodDeclaration && copy2.Kind() != SyntaxKind.LocalDeclarationStatement && copy2.Kind() != SyntaxKind.FieldDeclaration))
+                        {
+                            copy2 = copy2.Parent;
+                        }
+
+                        if (copy2 != null)
+                        {
+                            switch (copy2.Kind())
+                            {
+                                case SyntaxKind.ClassDeclaration:
+                                {
+                                    Console.WriteLine("{0} : Class ", ((ClassDeclarationSyntax)copy2).Identifier);
+                                    break;
+                                }
+                                case SyntaxKind.FieldDeclaration:
+                                {
+                                    Console.WriteLine("{0} : Field", ((FieldDeclarationSyntax)copy2).Declaration.Variables.Last().Identifier);
+                                    break;
+                                }
+                                case SyntaxKind.MethodDeclaration:
+                                {
+                                    Console.WriteLine("{0} : Method", ((MethodDeclarationSyntax) copy2).Identifier);
+                                    break;
+                                }
+                                case SyntaxKind.LocalDeclarationStatement:
+                                {
+                                    Console.WriteLine("{0} : Local", ((LocalDeclarationStatementSyntax)copy2).Declaration.Variables.Last().Identifier);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    Console.WriteLine(new string('-', 20));
+                }
             }
         }
 

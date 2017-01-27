@@ -2,8 +2,10 @@
 
 namespace Riker
 {
-    internal static class Test
+    internal static class Test1
     {
+        private static readonly Action<Action> _action = x => Device.Run(x);
+
         // Device Memory never leaves method!
         internal static bool Method001(int[] input)
         {
@@ -25,7 +27,7 @@ namespace Riker
                 local[0] = 5;
             });
 
-            Action<Action> run1 = x => Device.Run(x);
+            Action<Action> w, run1 = x => Device.Run(x);
             Action<Action> run2 = Device.Run;
 
             Action<Action> run3 = x =>
@@ -40,6 +42,8 @@ namespace Riker
             Iterate1(run1);
             Iterate1(run2);
             Iterate1(run3);
+            Iterate1(_action);
+            Iterate1(Test2.Action);
             Iterate2(run4);
 
             Device.Run(() => { });

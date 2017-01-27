@@ -41,6 +41,7 @@
     </Compile>
     <Compile Include="Test.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Test2.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Riker.Core\Riker.Core.csproj">
