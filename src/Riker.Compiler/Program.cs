@@ -424,6 +424,22 @@ namespace Riker
                             Console.ResetColor();
                         }
 
+                        if (x.Expression is InvocationExpressionSyntax)
+                        {
+                            var f = (await SymbolFinder.FindCallersAsync(editor.SemanticModel.GetSymbolInfo(x.Expression).Symbol, solution)).ToList();
+
+                            foreach (var xxx in f)
+                            {
+                                var k = xxx.CallingSymbol.DeclaringSyntaxReferences.First()
+                                    .GetSyntax()
+                                    .DescendantNodes()
+                                    .OfType<ReturnStatementSyntax>()
+                                    .FirstOrDefault();
+
+                                AnalizeAnonymousFunction(editor, k.Expression);
+                            }
+                        }
+
                         if (x.Expression is IdentifierNameSyntax)
                         {
                             Console.ForegroundColor = ConsoleColor.Red;

@@ -107,394 +107,394 @@ namespace Riker
 
     internal static class Test1
     {
-        // Inline Kernel
-        // -------------------------------------------
-
         private static readonly int[] _field = new int[10];
 
-        // [Action]
-        internal static bool Method001(IList<int> input)
-        {
-            const int constant = 34;
-            var local = new int[4];
+        //// Inline Kernel
+        //// -------------------------------------------
 
-            Device.Run(() =>
-            {
-                //------------------------------------------
+        //// [Action]
+        //internal static bool Method001(IList<int> input)
+        //{
+        //    const int constant = 34;
+        //    var local = new int[4];
 
-                // Read Param!
-                var temp1 = 2 * input[0] + constant;
+        //    Device.Run(() =>
+        //    {
+        //        //------------------------------------------
 
-                // Write Param!
-                input[0] = 8 * temp1;
+        //        // Read Param!
+        //        var temp1 = 2 * input[0] + constant;
 
-                // Read & Write Param!
-                input[0] += 8 * temp1;
+        //        // Write Param!
+        //        input[0] = 8 * temp1;
 
-                //------------------------------------------
+        //        // Read & Write Param!
+        //        input[0] += 8 * temp1;
 
-                // Read Local!
-                var temp2 = 2 * local[0] + constant;
+        //        //------------------------------------------
 
-                // Write Local!
-                local[0] = 8 * temp2;
+        //        // Read Local!
+        //        var temp2 = 2 * local[0] + constant;
 
-                // Read & Write Local!
-                local[0] += 8 * temp2;
+        //        // Write Local!
+        //        local[0] = 8 * temp2;
 
-                //------------------------------------------
+        //        // Read & Write Local!
+        //        local[0] += 8 * temp2;
 
-                // Read Field!
-                var temp3 = 2 * _field[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                _field[0] = 8 * temp3;
+        //        // Read Field!
+        //        var temp3 = 2 * _field[0] + constant;
 
-                // Read & Write Field!
-                _field[0] += 8 * temp3;
+        //        // Write Field!
+        //        _field[0] = 8 * temp3;
 
-                //------------------------------------------
+        //        // Read & Write Field!
+        //        _field[0] += 8 * temp3;
 
-                // Read External Field!
-                var temp4 = 2 * Test2.Field2[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                Test2.Field2[0] = 8 * temp4;
+        //        // Read External Field!
+        //        var temp4 = 2 * Test2.Field2[0] + constant;
 
-                // Read & Write Field!
-                Test2.Field2[0] += 8 * temp4;
+        //        // Write Field!
+        //        Test2.Field2[0] = 8 * temp4;
 
-                //------------------------------------------
-            });
+        //        // Read & Write Field!
+        //        Test2.Field2[0] += 8 * temp4;
 
-            // Copy Memory back to Host!
-            return input[0] > 10;
-        }
+        //        //------------------------------------------
+        //    });
 
-        // [Delegate]
-        internal static bool Method002(IList<int> input)
-        {
-            const int constant = 34;
-            var local = new int[4];
+        //    // Copy Memory back to Host!
+        //    return input[0] > 10;
+        //}
 
-            Device.Run(delegate
-            {
-                //------------------------------------------
+        //// [Delegate]
+        //internal static bool Method002(IList<int> input)
+        //{
+        //    const int constant = 34;
+        //    var local = new int[4];
 
-                // Read Param!
-                var temp1 = 2 * input[0] + constant;
+        //    Device.Run(delegate
+        //    {
+        //        //------------------------------------------
 
-                // Write Param!
-                input[0] = 8 * temp1;
+        //        // Read Param!
+        //        var temp1 = 2 * input[0] + constant;
 
-                // Read & Write Param!
-                input[0] += 8 * temp1;
+        //        // Write Param!
+        //        input[0] = 8 * temp1;
 
-                //------------------------------------------
+        //        // Read & Write Param!
+        //        input[0] += 8 * temp1;
 
-                // Read Local!
-                var temp2 = 2 * local[0] + constant;
+        //        //------------------------------------------
 
-                // Write Local!
-                local[0] = 8 * temp2;
+        //        // Read Local!
+        //        var temp2 = 2 * local[0] + constant;
 
-                // Read & Write Local!
-                local[0] += 8 * temp2;
+        //        // Write Local!
+        //        local[0] = 8 * temp2;
 
-                //------------------------------------------
+        //        // Read & Write Local!
+        //        local[0] += 8 * temp2;
 
-                // Read Field!
-                var temp3 = 2 * _field[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                _field[0] = 8 * temp3;
+        //        // Read Field!
+        //        var temp3 = 2 * _field[0] + constant;
 
-                // Read & Write Field!
-                _field[0] += 8 * temp3;
+        //        // Write Field!
+        //        _field[0] = 8 * temp3;
 
-                //------------------------------------------
+        //        // Read & Write Field!
+        //        _field[0] += 8 * temp3;
 
-                // Read External Field!
-                var temp4 = 2 * Test2.Field2[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                Test2.Field2[0] = 8 * temp4;
+        //        // Read External Field!
+        //        var temp4 = 2 * Test2.Field2[0] + constant;
 
-                // Read & Write Field!
-                Test2.Field2[0] += 8 * temp4;
+        //        // Write Field!
+        //        Test2.Field2[0] = 8 * temp4;
 
-                //------------------------------------------
-            });
+        //        // Read & Write Field!
+        //        Test2.Field2[0] += 8 * temp4;
 
-            // Copy Memory back to Host!
-            return input[0] > 10;
-        }
+        //        //------------------------------------------
+        //    });
 
-        // External (Local) Kernel -> Direct -> Single Call
-        // -------------------------------------------
+        //    // Copy Memory back to Host!
+        //    return input[0] > 10;
+        //}
 
-        // [Action]
-        internal static bool Method003(IList<int> input)
-        {
-            Device.Run(Call003(input));
+        //// External (Local) Kernel -> Direct -> Single Call
+        //// -------------------------------------------
 
-            // Copy Memory back to Host!
-            return input[0] > 10;
-        }
+        //// [Action]
+        //internal static bool Method003(IList<int> input)
+        //{
+        //    Device.Run(Call003(input));
 
-        private static Action Call003(IList<int> input)
-        {
-            const int constant = 34;
-            var local = new int[4];
+        //    // Copy Memory back to Host!
+        //    return input[0] > 10;
+        //}
 
-            return () =>
-            {
-                //------------------------------------------
+        //private static Action Call003(IList<int> input)
+        //{
+        //    const int constant = 34;
+        //    var local = new int[4];
 
-                // Read Param!
-                var temp1 = 2 * input[0] + constant;
+        //    return () =>
+        //    {
+        //        //------------------------------------------
 
-                // Write Param!
-                input[0] = 8 * temp1;
+        //        // Read Param!
+        //        var temp1 = 2 * input[0] + constant;
 
-                // Read & Write Param!
-                input[0] += 8 * temp1;
+        //        // Write Param!
+        //        input[0] = 8 * temp1;
 
-                //------------------------------------------
+        //        // Read & Write Param!
+        //        input[0] += 8 * temp1;
 
-                // Read Local!
-                var temp2 = 2 * local[0] + constant;
+        //        //------------------------------------------
 
-                // Write Local!
-                local[0] = 8 * temp2;
+        //        // Read Local!
+        //        var temp2 = 2 * local[0] + constant;
 
-                // Read & Write Local!
-                local[0] += 8 * temp2;
+        //        // Write Local!
+        //        local[0] = 8 * temp2;
 
-                //------------------------------------------
+        //        // Read & Write Local!
+        //        local[0] += 8 * temp2;
 
-                // Read Field!
-                var temp3 = 2 * _field[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                _field[0] = 8 * temp3;
+        //        // Read Field!
+        //        var temp3 = 2 * _field[0] + constant;
 
-                // Read & Write Field!
-                _field[0] += 8 * temp3;
+        //        // Write Field!
+        //        _field[0] = 8 * temp3;
 
-                //------------------------------------------
+        //        // Read & Write Field!
+        //        _field[0] += 8 * temp3;
 
-                // Read External Field!
-                var temp4 = 2 * Test2.Field2[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                Test2.Field2[0] = 8 * temp4;
+        //        // Read External Field!
+        //        var temp4 = 2 * Test2.Field2[0] + constant;
 
-                // Read & Write Field!
-                Test2.Field2[0] += 8 * temp4;
+        //        // Write Field!
+        //        Test2.Field2[0] = 8 * temp4;
 
-                //------------------------------------------
-            };
-        }
+        //        // Read & Write Field!
+        //        Test2.Field2[0] += 8 * temp4;
 
-        // [Delegate]
-        internal static bool Method004(IList<int> input)
-        {
-            Device.Run(Call004(input));
+        //        //------------------------------------------
+        //    };
+        //}
 
-            // Copy Memory back to Host!
-            return input[0] > 10;
-        }
+        //// [Delegate]
+        //internal static bool Method004(IList<int> input)
+        //{
+        //    Device.Run(Call004(input));
 
-        private static Action Call004(IList<int> input)
-        {
-            const int constant = 34;
-            var local = new int[4];
+        //    // Copy Memory back to Host!
+        //    return input[0] > 10;
+        //}
 
-            return delegate
-            {
-                //------------------------------------------
+        //private static Action Call004(IList<int> input)
+        //{
+        //    const int constant = 34;
+        //    var local = new int[4];
 
-                // Read Param!
-                var temp1 = 2 * input[0] + constant;
+        //    return delegate
+        //    {
+        //        //------------------------------------------
 
-                // Write Param!
-                input[0] = 8 * temp1;
+        //        // Read Param!
+        //        var temp1 = 2 * input[0] + constant;
 
-                // Read & Write Param!
-                input[0] += 8 * temp1;
+        //        // Write Param!
+        //        input[0] = 8 * temp1;
 
-                //------------------------------------------
+        //        // Read & Write Param!
+        //        input[0] += 8 * temp1;
 
-                // Read Local!
-                var temp2 = 2 * local[0] + constant;
+        //        //------------------------------------------
 
-                // Write Local!
-                local[0] = 8 * temp2;
+        //        // Read Local!
+        //        var temp2 = 2 * local[0] + constant;
 
-                // Read & Write Local!
-                local[0] += 8 * temp2;
+        //        // Write Local!
+        //        local[0] = 8 * temp2;
 
-                //------------------------------------------
+        //        // Read & Write Local!
+        //        local[0] += 8 * temp2;
 
-                // Read Field!
-                var temp3 = 2 * _field[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                _field[0] = 8 * temp3;
+        //        // Read Field!
+        //        var temp3 = 2 * _field[0] + constant;
 
-                // Read & Write Field!
-                _field[0] += 8 * temp3;
+        //        // Write Field!
+        //        _field[0] = 8 * temp3;
 
-                //------------------------------------------
+        //        // Read & Write Field!
+        //        _field[0] += 8 * temp3;
 
-                // Read External Field!
-                var temp4 = 2 * Test2.Field2[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                Test2.Field2[0] = 8 * temp4;
+        //        // Read External Field!
+        //        var temp4 = 2 * Test2.Field2[0] + constant;
 
-                // Read & Write Field!
-                Test2.Field2[0] += 8 * temp4;
+        //        // Write Field!
+        //        Test2.Field2[0] = 8 * temp4;
 
-                //------------------------------------------
-            };
-        }
+        //        // Read & Write Field!
+        //        Test2.Field2[0] += 8 * temp4;
 
-        // External (Local) Kernel -> Indirect -> Single Call
-        // -------------------------------------------
+        //        //------------------------------------------
+        //    };
+        //}
 
-        // [Action]
-        internal static bool Method005(IList<int> input)
-        {
-            Device.Run(Call005(input));
+        //// External (Local) Kernel -> Indirect -> Single Call
+        //// -------------------------------------------
 
-            // Copy Memory back to Host!
-            return input[0] > 10;
-        }
+        //// [Action]
+        //internal static bool Method005(IList<int> input)
+        //{
+        //    Device.Run(Call005(input));
 
-        private static Action Call005(IList<int> input)
-        {
-            const int constant = 34;
-            var local = new int[4];
+        //    // Copy Memory back to Host!
+        //    return input[0] > 10;
+        //}
 
-            Action action = () =>
-            {
-                //------------------------------------------
+        //private static Action Call005(IList<int> input)
+        //{
+        //    const int constant = 34;
+        //    var local = new int[4];
 
-                // Read Param!
-                var temp1 = 2 * input[0] + constant;
+        //    Action action = () =>
+        //    {
+        //        //------------------------------------------
 
-                // Write Param!
-                input[0] = 8 * temp1;
+        //        // Read Param!
+        //        var temp1 = 2 * input[0] + constant;
 
-                // Read & Write Param!
-                input[0] += 8 * temp1;
+        //        // Write Param!
+        //        input[0] = 8 * temp1;
 
-                //------------------------------------------
+        //        // Read & Write Param!
+        //        input[0] += 8 * temp1;
 
-                // Read Local!
-                var temp2 = 2 * local[0] + constant;
+        //        //------------------------------------------
 
-                // Write Local!
-                local[0] = 8 * temp2;
+        //        // Read Local!
+        //        var temp2 = 2 * local[0] + constant;
 
-                // Read & Write Local!
-                local[0] += 8 * temp2;
+        //        // Write Local!
+        //        local[0] = 8 * temp2;
 
-                //------------------------------------------
+        //        // Read & Write Local!
+        //        local[0] += 8 * temp2;
 
-                // Read Field!
-                var temp3 = 2 * _field[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                _field[0] = 8 * temp3;
+        //        // Read Field!
+        //        var temp3 = 2 * _field[0] + constant;
 
-                // Read & Write Field!
-                _field[0] += 8 * temp3;
+        //        // Write Field!
+        //        _field[0] = 8 * temp3;
 
-                //------------------------------------------
+        //        // Read & Write Field!
+        //        _field[0] += 8 * temp3;
 
-                // Read External Field!
-                var temp4 = 2 * Test2.Field2[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                Test2.Field2[0] = 8 * temp4;
+        //        // Read External Field!
+        //        var temp4 = 2 * Test2.Field2[0] + constant;
 
-                // Read & Write Field!
-                Test2.Field2[0] += 8 * temp4;
+        //        // Write Field!
+        //        Test2.Field2[0] = 8 * temp4;
 
-                //------------------------------------------
-            };
+        //        // Read & Write Field!
+        //        Test2.Field2[0] += 8 * temp4;
 
-            return action;
-        }
+        //        //------------------------------------------
+        //    };
 
-        // [Delegate]
-        internal static bool Method006(IList<int> input)
-        {
-            Device.Run(Call006(input));
+        //    return action;
+        //}
 
-            // Copy Memory back to Host!
-            return input[0] > 10;
-        }
+        //// [Delegate]
+        //internal static bool Method006(IList<int> input)
+        //{
+        //    Device.Run(Call006(input));
 
-        private static Action Call006(IList<int> input)
-        {
-            const int constant = 34;
-            var local = new int[4];
+        //    // Copy Memory back to Host!
+        //    return input[0] > 10;
+        //}
 
-            Action action = delegate
-            {
-                //------------------------------------------
+        //private static Action Call006(IList<int> input)
+        //{
+        //    const int constant = 34;
+        //    var local = new int[4];
 
-                // Read Param!
-                var temp1 = 2 * input[0] + constant;
+        //    Action action = delegate
+        //    {
+        //        //------------------------------------------
 
-                // Write Param!
-                input[0] = 8 * temp1;
+        //        // Read Param!
+        //        var temp1 = 2 * input[0] + constant;
 
-                // Read & Write Param!
-                input[0] += 8 * temp1;
+        //        // Write Param!
+        //        input[0] = 8 * temp1;
 
-                //------------------------------------------
+        //        // Read & Write Param!
+        //        input[0] += 8 * temp1;
 
-                // Read Local!
-                var temp2 = 2 * local[0] + constant;
+        //        //------------------------------------------
 
-                // Write Local!
-                local[0] = 8 * temp2;
+        //        // Read Local!
+        //        var temp2 = 2 * local[0] + constant;
 
-                // Read & Write Local!
-                local[0] += 8 * temp2;
+        //        // Write Local!
+        //        local[0] = 8 * temp2;
 
-                //------------------------------------------
+        //        // Read & Write Local!
+        //        local[0] += 8 * temp2;
 
-                // Read Field!
-                var temp3 = 2 * _field[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                _field[0] = 8 * temp3;
+        //        // Read Field!
+        //        var temp3 = 2 * _field[0] + constant;
 
-                // Read & Write Field!
-                _field[0] += 8 * temp3;
+        //        // Write Field!
+        //        _field[0] = 8 * temp3;
 
-                //------------------------------------------
+        //        // Read & Write Field!
+        //        _field[0] += 8 * temp3;
 
-                // Read External Field!
-                var temp4 = 2 * Test2.Field2[0] + constant;
+        //        //------------------------------------------
 
-                // Write Field!
-                Test2.Field2[0] = 8 * temp4;
+        //        // Read External Field!
+        //        var temp4 = 2 * Test2.Field2[0] + constant;
 
-                // Read & Write Field!
-                Test2.Field2[0] += 8 * temp4;
+        //        // Write Field!
+        //        Test2.Field2[0] = 8 * temp4;
 
-                //------------------------------------------
-            };
+        //        // Read & Write Field!
+        //        Test2.Field2[0] += 8 * temp4;
 
-            return action;
-        }
+        //        //------------------------------------------
+        //    };
+
+        //    return action;
+        //}
 
         // External (Local) Kernel -> Indirect -> Multiple Calls
         // -------------------------------------------
