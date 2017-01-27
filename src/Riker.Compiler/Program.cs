@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 
@@ -244,43 +245,16 @@ namespace Riker
 
                     var methodCallType = GetCallerType(member);
                     var parent = GetParentDeclaration(member);
+                    var parentIdentifier = GetParentIdentifier(parent);
 
                     //Note: Debug-Info Only
                     hasMembers = true;
                     var line = member.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
-                    Console.WriteLine("{0,20} as {1,12} [{2}]", symbol, methodCallType, line);
+                    Console.WriteLine("{0} in {1} [{2}]", symbol, parentIdentifier, line);
 
                     if (methodCallType == CallerType.Method)
                     {
-                        AnalizeMemoryAccessInKernel(member, editor);
-                    }
-
-                    // Todo: This will probably be a loop! We go up the tree a method does not interact with anyone anymore!
-                    // Todo: For now it will a "one-off".
-                    if (parent != null)
-                    {
-                        switch (parent.Kind())
-                        {
-                            case SyntaxKind.FieldDeclaration:
-                            {
-                                Console.WriteLine("{0} : Field", ((FieldDeclarationSyntax)parent).Declaration.Variables.Last().Identifier);
-                                break;
-                            }
-                            case SyntaxKind.MethodDeclaration:
-                            {
-                                Console.WriteLine("{0} : Method", ((MethodDeclarationSyntax) parent).Identifier);
-                                break;
-                            }
-                            case SyntaxKind.LocalDeclarationStatement:
-                            {
-                                Console.WriteLine("{0} : Local", ((LocalDeclarationStatementSyntax)parent).Declaration.Variables.Last().Identifier);
-                                break;
-                            }
-                            default:
-                            {
-                                throw new NotSupportedException();
-                            }
-                        }
+                        await AnalizeMemoryAccessInKernel(member, editor, workspace.CurrentSolution, document.Project, parentIdentifier);
                     }
                 }
 
@@ -376,7 +350,39 @@ namespace Riker
             return parent;
         }
 
-        private static void AnalizeMemoryAccessInKernel(SyntaxNode member, DocumentEditor editor)
+        private static string GetParentIdentifier(SyntaxNode parent)
+        {
+            // Todo: This will probably be a loop! We go up the tree a method does not interact with anyone anymore!
+            // Todo: For now it will a "one-off".
+            if (parent != null)
+            {
+                switch (parent.Kind())
+                {
+                    case SyntaxKind.FieldDeclaration:
+                    {
+                        return ((FieldDeclarationSyntax)parent).Declaration.Variables.Last().Identifier.ValueText;
+                        //Console.WriteLine("{0} : Field", ((FieldDeclarationSyntax)parent).Declaration.Variables.Last().Identifier);
+                        //break;
+                    }
+                    case SyntaxKind.MethodDeclaration:
+                    {
+                        return ((MethodDeclarationSyntax)parent).Identifier.ValueText;
+                        //Console.WriteLine("{0} : Method", ((MethodDeclarationSyntax) parent).Identifier);
+                        //break;
+                        }
+                    case SyntaxKind.LocalDeclarationStatement:
+                    {
+                        return ((LocalDeclarationStatementSyntax) parent).Declaration.Variables.Last().Identifier.ValueText;
+                        //Console.WriteLine("{0} : Local", ((LocalDeclarationStatementSyntax) parent).Declaration.Variables.Last().Identifier);
+                        //break;
+                    }
+                }
+            }
+
+            throw new NotSupportedException();
+        }
+
+        private static async Task AnalizeMemoryAccessInKernel(SyntaxNode member, DocumentEditor editor, Solution solution, Project project, string parentIdentifier)
         {
             var expression = ((InvocationExpressionSyntax)member.Parent)
                 .ArgumentList
@@ -394,18 +400,58 @@ namespace Riker
                 //    Console.ResetColor();
                 //    break;
                 //}
-                //case SyntaxKind.InvocationExpression:
-                //{
-                //    // Todo: Find References! Inspect Further!
-                //    Console.ForegroundColor = ConsoleColor.Red;
-                //    var w = ((InvocationExpressionSyntax)expression);
-                //    Console.WriteLine("\tMethod Call : {0}", ((IdentifierNameSyntax)w.Expression).Identifier);
-                //    Console.ResetColor();
-                //    break;
-                //}
+                case SyntaxKind.InvocationExpression:
+                {
+                    // Todo: Find References! Inspect Further!
+                    var w = ((InvocationExpressionSyntax)expression);
+
+                    var identifier = ((IdentifierNameSyntax)w.Expression).Identifier.ValueText;
+                    var b = await SymbolFinder.FindDeclarationsAsync(project, identifier, false);
+
+                    foreach (var item in b)
+                    {
+                        var x = item.DeclaringSyntaxReferences.First()
+                            .GetSyntax()
+                            .DescendantNodes()
+                            .OfType<ReturnStatementSyntax>()
+                            .FirstOrDefault();
+
+                        if (x.Expression is AnonymousFunctionExpressionSyntax)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Cyan;
+                            Console.WriteLine("\t   [Method Call] in {0}", identifier);
+                            AnalizeAnonymousFunction(editor, x.Expression);
+                            Console.ResetColor();
+                        }
+
+                        if (x.Expression is IdentifierNameSyntax)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("\t   [Method Call] in {0}", identifier);
+                            Console.WriteLine("\t   [Anonymous Lambda]");
+                            var f = (await SymbolFinder.FindReferencesAsync(editor.SemanticModel.GetSymbolInfo(x.Expression).Symbol, solution)).ToList();
+
+                            foreach (var xxx in f)
+                            {
+                                var k = xxx.Definition.DeclaringSyntaxReferences.First()
+                                    .GetSyntax()
+                                    .DescendantNodes()
+                                    .OfType<AnonymousFunctionExpressionSyntax>()
+                                    .FirstOrDefault();
+
+                                AnalizeAnonymousFunction(editor, k);
+                            }
+
+                            Console.ResetColor();
+                        }
+                    }
+
+                    break;
+                }
                 case SyntaxKind.ParenthesizedLambdaExpression:
                 {
                     Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("\t   [Method Call] in {0}", parentIdentifier);
                     Console.WriteLine("\t   [Anonymous Lambda]");
 
                     AnalizeAnonymousFunction(editor, expression);
@@ -416,6 +462,7 @@ namespace Riker
                 case SyntaxKind.AnonymousMethodExpression:
                 {
                     Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("\t   [Method Call] in {0}", parentIdentifier);
                     Console.WriteLine("\t   [Anonymous Delegate]");
 
                     AnalizeAnonymousFunction(editor, expression);
@@ -454,12 +501,14 @@ namespace Riker
                     }
                     case SymbolKind.Parameter:
                     {
+                        isExternal = true;
                         type = ((IParameterSymbol) symbol).Type;
                         locality = "param";
                         break;
                     }
                     case SymbolKind.Local:
                     {
+                        isExternal = true;
                         type = ((ILocalSymbol) symbol).Type;
                         locality = "local";
                         break;
