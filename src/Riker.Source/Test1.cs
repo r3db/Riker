@@ -107,9 +107,12 @@ namespace Riker
 
     internal static class Test1
     {
+        // Inline Kernel
+        // -------------------------------------------
+
         private static readonly int[] _field = new int[10];
 
-        // Inline Kernel [Action]
+        // [Action]
         internal static bool Method001(IList<int> input)
         {
             const int constant = 34;
@@ -168,7 +171,7 @@ namespace Riker
             return input[0] > 10;
         }
 
-        // Inline Kernel [Delegate]
+        // [Delegate]
         internal static bool Method002(IList<int> input)
         {
             const int constant = 34;
@@ -227,9 +230,10 @@ namespace Riker
             return input[0] > 10;
         }
 
+        // External (Local) Kernel
         // -------------------------------------------
 
-        // External (Local) Kernel [Action]   -> Method:Direct
+        // [Action]   -> Method:Direct
         internal static bool Method003(IList<int> input)
         {
             Device.Run(Call003(input));
@@ -293,7 +297,7 @@ namespace Riker
             };
         }
 
-        // External (Local) Kernel [Delegate] -> Method:Direct
+        // [Delegate] -> Method:Direct
         internal static bool Method004(IList<int> input)
         {
             Device.Run(Call004(input));
@@ -357,9 +361,10 @@ namespace Riker
             };
         }
 
+        // External (Local) Kernel
         // -------------------------------------------
 
-        // External (Local) Kernel [Action]   -> Method:Indirect
+        // [Action]   -> Method:Indirect
         internal static bool Method005(IList<int> input)
         {
             Device.Run(Call005(input));
@@ -425,7 +430,7 @@ namespace Riker
             return action;
         }
 
-        // External (Local) Kernel [Delegate] -> Method:Indirect
+        // [Delegate] -> Method:Indirect
         internal static bool Method006(IList<int> input)
         {
             Device.Run(Call006(input));
@@ -435,6 +440,161 @@ namespace Riker
         }
 
         private static Action Call006(IList<int> input)
+        {
+            const int constant = 34;
+            var local = new int[4];
+
+            Action action = delegate
+            {
+                //------------------------------------------
+
+                // Read Param!
+                var temp1 = 2 * input[0] + constant;
+
+                // Write Param!
+                input[0] = 8 * temp1;
+
+                // Read & Write Param!
+                input[0] += 8 * temp1;
+
+                //------------------------------------------
+
+                // Read Local!
+                var temp2 = 2 * local[0] + constant;
+
+                // Write Local!
+                local[0] = 8 * temp2;
+
+                // Read & Write Local!
+                local[0] += 8 * temp2;
+
+                //------------------------------------------
+
+                // Read Field!
+                var temp3 = 2 * _field[0] + constant;
+
+                // Write Field!
+                _field[0] = 8 * temp3;
+
+                // Read & Write Field!
+                _field[0] += 8 * temp3;
+
+                //------------------------------------------
+
+                // Read External Field!
+                var temp4 = 2 * Test2.Field2[0] + constant;
+
+                // Write Field!
+                Test2.Field2[0] = 8 * temp4;
+
+                // Read & Write Field!
+                Test2.Field2[0] += 8 * temp4;
+
+                //------------------------------------------
+            };
+
+            return action;
+        }
+
+        // External (Local) Kernel
+        // -------------------------------------------
+
+        // [Action]   -> Method:Indirect -> Multiple Calls
+        internal static bool Method007(IList<int> input)
+        {
+            Device.Run(Call007a(input));
+
+            // Copy Memory back to Host!
+            return input[0] > 10;
+        }
+
+        private static Action Call007a(IList<int> input)
+        {
+            return Call007b(input);
+        }
+
+        private static Action Call007b(IList<int> input)
+        {
+            return Call007c(input);
+        }
+
+        private static Action Call007c(IList<int> input)
+        {
+            const int constant = 34;
+            var local = new int[4];
+
+            Action action = () =>
+            {
+                //------------------------------------------
+
+                // Read Param!
+                var temp1 = 2 * input[0] + constant;
+
+                // Write Param!
+                input[0] = 8 * temp1;
+
+                // Read & Write Param!
+                input[0] += 8 * temp1;
+
+                //------------------------------------------
+
+                // Read Local!
+                var temp2 = 2 * local[0] + constant;
+
+                // Write Local!
+                local[0] = 8 * temp2;
+
+                // Read & Write Local!
+                local[0] += 8 * temp2;
+
+                //------------------------------------------
+
+                // Read Field!
+                var temp3 = 2 * _field[0] + constant;
+
+                // Write Field!
+                _field[0] = 8 * temp3;
+
+                // Read & Write Field!
+                _field[0] += 8 * temp3;
+
+                //------------------------------------------
+
+                // Read External Field!
+                var temp4 = 2 * Test2.Field2[0] + constant;
+
+                // Write Field!
+                Test2.Field2[0] = 8 * temp4;
+
+                // Read & Write Field!
+                Test2.Field2[0] += 8 * temp4;
+
+                //------------------------------------------
+            };
+
+            return action;
+        }
+
+        // [Delegate] -> Method:Indirect -> Multiple Calls
+        internal static bool Method008(IList<int> input)
+        {
+            Device.Run(Call008a(input));
+
+            // Copy Memory back to Host!
+            return input[0] > 10;
+        }
+
+        private static Action Call008a(IList<int> input)
+        {
+            return Call008b(input);
+        }
+
+        private static Action Call008b(IList<int> input)
+        {
+            return Call008c(input);
+        }
+
+        private static Action Call008c(IList<int> input)
         {
             const int constant = 34;
             var local = new int[4];
