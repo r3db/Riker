@@ -386,19 +386,39 @@ namespace Riker
 
             switch (expression.Kind())
             {
-                case SyntaxKind.IdentifierName:
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("\tExternal Lambda : {0}", ((IdentifierNameSyntax)expression).Identifier);
-                    Console.ResetColor();
-                    break;
-                }
+                //case SyntaxKind.IdentifierName:
+                //{
+                //    // Todo: Find References! Inspect Further!
+                //    Console.ForegroundColor = ConsoleColor.Yellow;
+                //    Console.WriteLine("\tExternal Lambda : {0}", ((IdentifierNameSyntax)expression).Identifier);
+                //    Console.ResetColor();
+                //    break;
+                //}
+                //case SyntaxKind.InvocationExpression:
+                //{
+                //    // Todo: Find References! Inspect Further!
+                //    Console.ForegroundColor = ConsoleColor.Red;
+                //    var w = ((InvocationExpressionSyntax)expression);
+                //    Console.WriteLine("\tMethod Call : {0}", ((IdentifierNameSyntax)w.Expression).Identifier);
+                //    Console.ResetColor();
+                //    break;
+                //}
                 case SyntaxKind.ParenthesizedLambdaExpression:
                 {
                     Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine("\t   Local Lambda");
+                    Console.WriteLine("\t   [Anonymous Lambda]");
 
-                    AnalizeLocalKernel(editor, expression);
+                    AnalizeAnonymousFunction(editor, expression);
+
+                    Console.ResetColor();
+                    break;
+                }
+                case SyntaxKind.AnonymousMethodExpression:
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("\t   [Anonymous Delegate]");
+
+                    AnalizeAnonymousFunction(editor, expression);
 
                     Console.ResetColor();
                     break;
@@ -406,9 +426,9 @@ namespace Riker
             }
         }
 
-        private static void AnalizeLocalKernel(DocumentEditor editor, ExpressionSyntax expression)
+        private static void AnalizeAnonymousFunction(DocumentEditor editor, ExpressionSyntax expression)
         {
-            var access = ((ParenthesizedLambdaExpressionSyntax) expression)
+            var access = ((AnonymousFunctionExpressionSyntax)expression)
                 .Body
                 .DescendantNodes()
                 .OfType<ElementAccessExpressionSyntax>()
