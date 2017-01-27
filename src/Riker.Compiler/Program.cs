@@ -250,8 +250,13 @@ namespace Riker
                     var line = member.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                     Console.WriteLine("{0,20} as {1,12} [{2}]", symbol, methodCallType, line);
 
+                    if (methodCallType == CallerType.Method)
+                    {
+                        AnalizeMemoryAccessInKernel(member, editor);
+                    }
+
                     // Todo: Analize Kernel
-                    // Todo: This will probably be loop! We go up the tree a method does not interact with anyone anymore!
+                    // Todo: This will probably be a loop! We go up the tree a method does not interact with anyone anymore!
                     // Todo: For now it will a "one-off".
                     if (parent != null)
                     {
@@ -271,6 +276,10 @@ namespace Riker
                             {
                                 Console.WriteLine("{0} : Local", ((LocalDeclarationStatementSyntax)parent).Declaration.Variables.Last().Identifier);
                                 break;
+                            }
+                            default:
+                            {
+                                throw new NotSupportedException();
                             }
                         }
                     }
@@ -366,6 +375,90 @@ namespace Riker
             }
 
             return parent;
+        }
+
+        private static void AnalizeMemoryAccessInKernel(SyntaxNode member, DocumentEditor editor)
+        {
+            var expression = ((InvocationExpressionSyntax)member.Parent)
+                .ArgumentList
+                .Arguments
+                .First()
+                .Expression;
+
+            switch (expression.Kind())
+            {
+                case SyntaxKind.IdentifierName:
+                {
+                    Console.WriteLine("\tExternal Lambda : {0}", ((IdentifierNameSyntax)expression).Identifier);
+                    break;
+                }
+                case SyntaxKind.ParenthesizedLambdaExpression:
+                {
+                    Console.WriteLine("\t   Local Lambda");
+
+                    var access = ((ParenthesizedLambdaExpressionSyntax)expression)
+                        .Body
+                        .DescendantNodes()
+                        .OfType<ElementAccessExpressionSyntax>()
+                        .ToList();
+
+                    foreach (var item in access)
+                    {
+                        var symbol = editor.SemanticModel.GetSymbolInfo(item.Expression).Symbol;
+                        var line = item.Expression.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+
+                        switch (symbol.Kind)
+                        {
+                            case SymbolKind.Parameter:
+                            {
+                                Console.WriteLine("\t{0,8} {1} Param [{2}]", item.Expression, ((IParameterSymbol)symbol).Type, line);
+                                break;
+                            }
+                            case SymbolKind.Local:
+                            {
+                                Console.WriteLine("\t{0,8} {1} Local [{2}]", item.Expression, ((ILocalSymbol)symbol).Type, line);
+                                break;
+                            }
+                            default:
+                            {
+                                throw new NotSupportedException();
+                            }
+                        }
+
+                        var parent = item.Parent;
+
+                        switch (parent.Kind())
+                        {
+                            case SyntaxKind.SimpleAssignmentExpression:
+                            {
+                                Console.WriteLine("\tWrite");
+                                break;
+                            }
+                            case SyntaxKind.AddAssignmentExpression:
+                            case SyntaxKind.SubtractAssignmentExpression:
+                            case SyntaxKind.MultiplyAssignmentExpression:
+                            case SyntaxKind.DivideAssignmentExpression:
+                            case SyntaxKind.ModuloAssignmentExpression:
+                            case SyntaxKind.AndAssignmentExpression:
+                            case SyntaxKind.ExclusiveOrAssignmentExpression:
+                            case SyntaxKind.OrAssignmentExpression:
+                            case SyntaxKind.LeftShiftAssignmentExpression:
+                            case SyntaxKind.RightShiftAssignmentExpression:
+                            {
+                                Console.WriteLine("\tRead/Write");
+                                break;
+                            }
+                            default:
+                            {
+                                Console.WriteLine("\tRead");
+                                break;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+            }
         }
     }
 }
