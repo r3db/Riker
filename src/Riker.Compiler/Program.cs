@@ -411,9 +411,17 @@ namespace Riker
                         var identifier = item.DescendantNodes().OfType<IdentifierNameSyntax>().First().Identifier.ValueText;
                         ITypeSymbol type;
                         string locality;
-
+                        bool isExternal = false;
+                            
                         switch (symbol.Kind)
                         {
+                            case SymbolKind.Field:
+                            {
+                                isExternal = item.DescendantNodes().ToList().First() is MemberAccessExpressionSyntax;
+                                type = ((IFieldSymbol)symbol).Type;
+                                locality = "field";
+                                break;
+                            }
                             case SymbolKind.Parameter:
                             {
                                 type = ((IParameterSymbol)symbol).Type;
@@ -463,7 +471,7 @@ namespace Riker
                             }
                         }
 
-                        Console.WriteLine("\t{0,8} {1} {2} {3} [{4}]", identifier, type, locality, mode, line);
+                        Console.WriteLine("\t{0,8} {1} {2} {3} {4} [{5}]", identifier, type, locality, mode, isExternal ? "external": "internal", line);
                     }
 
                     break;
