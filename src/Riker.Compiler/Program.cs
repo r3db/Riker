@@ -238,7 +238,7 @@ namespace Riker
                 }
             }
 
-            return GetTypeName(declaringTypeName, type);
+            return "class " + GetTypeName(declaringTypeName, type);
         }
 
         // Todo: Handle Generics!
@@ -246,9 +246,29 @@ namespace Riker
         {
             var name = new AssemblyName(type.Assembly.FullName).Name;
 
+            Func<string, string> cleanType = s =>
+            {
+                if (s.Contains('<') || s.Contains('>'))
+                {
+                    return $"'{s}'";
+                }
+
+                return s;
+            };
+
+            var nestedType = type.IsNested
+                ? $".{cleanType(type.DeclaringType.Name)}"
+                : null;
+
+            var accessOperator = type.IsNested
+                ? "+"
+                : ".";
+
+            var fullName = $"{type.Namespace}{nestedType}{accessOperator}{cleanType(type.Name)}";
+
             return name == declaringTypeName
-                ? $"class {type.FullName}"
-                : $"class [{name}]{type.FullName}";
+                ? $"{fullName}"
+                : $"[{name}]{fullName}";
         }
     }
 
