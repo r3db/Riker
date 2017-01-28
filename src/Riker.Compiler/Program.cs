@@ -57,29 +57,53 @@ namespace Riker
         }
     }
 
-    internal struct ILInstruction {
+    internal struct ILInstruction
+    {
+        private static string mscorlib = typeof(string).Assembly.FullName;
+
         public OpCode Code { get; set; }
         public int Offset { get; set; }
-        public MemberInfo Operand { get; set; }
+        public object Operand { get; set; }
+        public bool IsMultiByte { get; set; }
 
-        public override string ToString()
+        public string ToString(MethodInfo method)
         {
+            var dtn = new AssemblyName(method.DeclaringType.Assembly.FullName).Name;
             var result = new StringBuilder();
 
-            result.AppendFormat("IL_{0:x4}: {1}{2}", Offset, Code.Name, new string(' ', 12 - Code.Name.Length));
+            result.AppendFormat("IL_{0:x4}: 0x{1:x2}{2} {3}{4}", Offset, Code.Value, IsMultiByte ? null : "  ", Code.Name, new string(' ', 12 - Code.Name.Length));
+
+            switch (Code.Value)
+            {
+                case 0x02:
+                {
+                    var param = method.GetParameters();
+                    result.AppendFormat(" // {0}", param.Length == 0 ? "this" : param[0].Name);
+                    break;
+                }
+                case 0x06:
+                case 0x0a:
+                {
+                    var mb = method.GetMethodBody();
+                    result.AppendFormat(" // {0}", GetReturnTypeName(dtn, mb.LocalVariables[0].LocalType));
+                    break;
+                }
+            }
 
             switch (Code.OperandType)
             {
-                //case OperandType.InlineBrTarget:
-                //{
-                //    ReadInt32();
-                //    break;
-                //}
-                //case OperandType.InlineField:
-                //{
-                //    ReadInt32();
-                //    break;
-                //}
+                case OperandType.InlineBrTarget:
+                {
+                    var offset = (int)Operand;
+                    result.AppendFormat("IL_{0:x8}", offset);
+                    break;
+                }
+                case OperandType.InlineField:
+                {
+                    var operand = (FieldInfo)Operand;
+                    result.AppendFormat(" {0} {1}::{2}", GetReturnTypeName(dtn, operand.FieldType), GetTypeName(dtn, operand.ReflectedType), operand.Name);
+                    break;
+                }
                 //case OperandType.InlineI:
                 //{
                 //    ReadInt32();
@@ -92,31 +116,35 @@ namespace Riker
                 //}
                 case OperandType.InlineMethod:
                 {
-                    var assemblyName = new AssemblyName(Operand.GetType().Assembly.FullName).Name;
+                    var methodInfo = Operand as MethodInfo;
 
-                    if (Operand is MethodInfo)
+                    if (methodInfo != null)
                     {
-                        var operand = (MethodInfo)Operand;
+                        var operand = methodInfo;
 
                         if (operand.IsStatic == false)
                         {
                             result.Append(" instance");
                         }
 
-                        result.AppendFormat(" [{0}]{1}", assemblyName, operand.ReturnType.FullName);
-                        result.AppendFormat(" {0}.{1}::{2}()", operand.ReflectedType.Namespace, operand.ReflectedType.Name, operand.Name);
+                        // Todo: Handle Arguments!
+                        result.AppendFormat(" {0} {1}::{2}()", GetReturnTypeName(dtn, operand.ReturnType), GetTypeName(dtn, operand.ReflectedType), operand.Name);
                     }
-                    //else if (Operand is ConstructorInfo)
-                    //{
-                    //    var operand = (ConstructorInfo)Operand;
 
-                    //    if (operand.IsStatic == false)
-                    //    {
-                    //        result.Append(".ctor");
-                    //        result.Append(operand.ReflectedType.Name);
-                    //        result.Append(operand.Name);
-                    //    }
-                    //}
+                    var constructorInfo = Operand as ConstructorInfo;
+
+                    if (constructorInfo != null)
+                    {
+                        var operand = constructorInfo;
+
+                        if (operand.IsStatic == false)
+                        {
+                            result.Append(" instance");
+                        }
+
+                        // Todo: Handle Arguments!
+                        result.AppendFormat(" void {0}::{1}()", GetTypeName(dtn, operand.ReflectedType), operand.Name);
+                    }
 
                     break;
                 }
@@ -149,21 +177,23 @@ namespace Riker
                 //    ReadInt32();
                 //    break;
                 //}
-                //case OperandType.InlineType:
-                //{
-                //    ReadInt32();
-                //    break;
-                //}
+                case OperandType.InlineType:
+                {
+                    var type = (Type)Operand;
+                    result.AppendFormat(" {0}", GetReturnTypeName(dtn, type));
+                    break;
+                }
                 //case OperandType.InlineVar:
                 //{
                 //    ReadUInt16();
                 //    break;
                 //}
-                //case OperandType.ShortInlineBrTarget:
-                //{
-                //    ReadInt8();
-                //    break;
-                //}
+                case OperandType.ShortInlineBrTarget:
+                {
+                    var offset = (byte)Operand;
+                    result.AppendFormat(" IL_{0:x4}", offset);
+                    break;
+                }
                 //case OperandType.ShortInlineI:
                 //{
                 //    ReadInt8();
@@ -187,6 +217,39 @@ namespace Riker
 
             return result.ToString();
         }
+        
+        private static string GetReturnTypeName(string declaringTypeName, Type type)
+        {
+            if (type.Assembly.FullName == mscorlib)
+            {
+                if (type == typeof(void))
+                {
+                    return "void";
+                }
+
+                if (type == typeof(int))
+                {
+                    return "int32";
+                }
+
+                if (type == typeof(int[]))
+                {
+                    return "int32[]";
+                }
+            }
+
+            return GetTypeName(declaringTypeName, type);
+        }
+
+        // Todo: Handle Generics!
+        private static string GetTypeName(string declaringTypeName, Type type)
+        {
+            var name = new AssemblyName(type.Assembly.FullName).Name;
+
+            return name == declaringTypeName
+                ? $"class {type.FullName}"
+                : $"class [{name}]{type.FullName}";
+        }
     }
 
     internal sealed class ILLoader
@@ -207,10 +270,12 @@ namespace Riker
             {
                 var il = _il[_index++];
                 OpCode code;
+                var isMultiByte = false;
 
                 if (il == 0xfe)
                 {
                     il = _il[_index++];
+                    isMultiByte = true;
                     code = OpCodes.GetMultipleByteOpCode(il);
                 }
                 else
@@ -218,19 +283,19 @@ namespace Riker
                     code = OpCodes.GetSingleByteOpCode(il);
                 }
 
-                var offset = _index - 1;
-                MemberInfo operand = null;
+                var offset = _index - (isMultiByte ? 2 : 1);
+                object operand = null;
 
                 switch (code.OperandType)
                 {
                     case OperandType.InlineBrTarget:
                     {
-                        ReadInt32();
+                        operand = ReadInt32() + _index;
                         break;
                     }
                     case OperandType.InlineField:
                     {
-                        ReadInt32();
+                        operand = module.ResolveField(ReadInt32());
                         break;
                     }
                     case OperandType.InlineI:
@@ -245,17 +310,7 @@ namespace Riker
                     }
                     case OperandType.InlineMethod:
                     {
-                        var metadataToken = ReadInt32();
-
-                        try
-                        {
-                            operand = module.ResolveMethod(metadataToken);
-                        }
-                        catch
-                        {
-                            operand = module.ResolveMember(metadataToken);
-                        }
-
+                        operand = module.ResolveMember(ReadInt32());
                         break;
                     }
                     case OperandType.InlineNone:
@@ -289,7 +344,7 @@ namespace Riker
                     }
                     case OperandType.InlineType:
                     {
-                        ReadInt32();
+                        operand = module.ResolveType(ReadInt32());
                         break;
                     }
                     case OperandType.InlineVar:
@@ -299,7 +354,7 @@ namespace Riker
                     }
                     case OperandType.ShortInlineBrTarget:
                     {
-                        ReadInt8();
+                        operand = (byte)(ReadInt8() + _index);
                         break;
                     }
                     case OperandType.ShortInlineI:
@@ -325,9 +380,10 @@ namespace Riker
 
                 var instruction = new ILInstruction
                 {
-                    Code    = code,
-                    Offset  = offset,
-                    Operand = operand,
+                    Code        = code,
+                    Offset      = offset,
+                    Operand     = operand,
+                    IsMultiByte = isMultiByte
                 };
 
                 result.Add(instruction);
@@ -463,7 +519,7 @@ namespace Riker
                     continue;
                 }
 
-                Console.WriteLine(item.Name);
+                Console.WriteLine("{0}.{1}::{2}", item.ReflectedType.Namespace, item.ReflectedType.Name, item.Name);
 
                 var reader = new ILLoader(methodBody.GetILAsByteArray());
 
@@ -471,43 +527,8 @@ namespace Riker
 
                 foreach (var instruction in instructions)
                 {
-                    Console.WriteLine("\t" + instruction);
+                    Console.WriteLine("\t" + instruction.ToString(item));
                 }
-
-                //var index = 0;
-                //var ilCode = methodBody.GetILAsByteArray();
-
-
-                //while (index < ilCode.Length)
-                //{
-                //    var value = ilCode[index++];
-                //    OpCode code;
-
-                //    if (value == 0xfe)
-                //    {
-                //        value = ilCode[index++];
-                //        code = OpCodes.GetMultipleByteOpCode(value);
-                //    }
-                //    else
-                //    {
-                //        code = OpCodes.GetSingleByteOpCode(value);
-                //    }
-
-                //    Console.WriteLine(code.Name);
-
-                //    int metadataToken = 0;
-
-                //    switch (code.OperandType)
-                //    {
-                //        case OperandType.InlineBrTarget:
-                //        {
-                //            metadataToken = ReadInt32(ilCode);
-                //            metadataToken += index;
-                //            instruction.Operand = metadataToken;
-                //            break;
-                //        }
-                //    }
-                //}
             }
 
             Console.WriteLine("Done!");
