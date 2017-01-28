@@ -105,7 +105,7 @@ namespace Riker
     //    }
     //}
 
-    internal static class Test1
+    public static class Test1
     {
         private static readonly int[] _field = new int[10];
 

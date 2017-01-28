@@ -110,6 +110,10 @@
       <Project>{60caaf3c-3f3e-4a73-9802-1ca07d10db07}</Project>
       <Name>Riker.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Riker.Source\Riker.Source.csproj">
+      <Project>{eb5be2b7-adbe-423b-a763-4799cf0c7567}</Project>
+      <Name>Riker.Source</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
