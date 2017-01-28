@@ -95,6 +95,9 @@
     <Compile Include="..\Solution\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="MsilInstruction.cs" />
+    <Compile Include="MsilInstructionReader.cs" />
+    <Compile Include="OpCodes.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
