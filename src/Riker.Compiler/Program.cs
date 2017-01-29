@@ -39,28 +39,6 @@ namespace Riker
             //    }
             //}).Wait();
 
-            //var codes = typeof(OpCodes).GetFields();
-            //var so = new Dictionary<int, OpCode>();
-            //var mo = new Dictionary<int, OpCode>();
-
-            //for (int i = 0; i < codes.Length; i++)
-            //{
-            //    var code = (OpCode)codes[i].GetValue(null);
-
-            //    if ((code.Value & 0xfe00) == 0)
-            //    {
-            //        so.Add(code.Value, code);
-            //    }
-            //    else
-            //    {
-            //        mo.Add(code.Value ^ 0xfe00, code);
-            //    }
-
-            //    var prefix = (code.Value & 0xfe00) == 0 ? "S" : "M";
-            //    Console.WriteLine("{0} {1,18} {2:X2}", prefix, code.Name, code.Value);
-
-            //}
-
             Dissasemble(typeof(Test1).Assembly);
 
             Console.WriteLine("Done!");
